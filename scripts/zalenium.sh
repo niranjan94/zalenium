@@ -9,6 +9,7 @@ DESIRED_CONTAINERS=${DESIRED_CONTAINERS:-2}
 MAX_DOCKER_SELENIUM_CONTAINERS=${MAX_DOCKER_SELENIUM_CONTAINERS:-10}
 ZALENIUM_ARTIFACT="$(pwd)/${project.build.finalName}.jar"
 DEPRECATED_PARAMETERS=false
+DASHBOARD_ENABLED=true
 SAUCE_LABS_ENABLED=${SAUCE_LABS_ENABLED:-false}
 BROWSER_STACK_ENABLED=${BROWSER_STACK_ENABLED:-false}
 TESTINGBOT_ENABLED=${TESTINGBOT_ENABLED:-false}
@@ -364,6 +365,7 @@ StartUp()
     export ZALENIUM_MAX_TEST_SESSIONS=${MAX_TEST_SESSIONS}
     export ZALENIUM_KEEP_ONLY_FAILED_TESTS=${KEEP_ONLY_FAILED_TESTS}
     export ZALENIUM_RETENTION_PERIOD=${RETENTION_PERIOD}
+    export ZALENIUM_DASHBOARD_ENABLED=${DASHBOARD_ENABLED}
     export ZALENIUM_NODE_PARAMS=${SELENIUM_NODE_PARAMS}
 
     # Random ID used for Google Analytics
@@ -761,6 +763,7 @@ function usage()
     echo -e "\t --maxTestSessions -> max amount of tests executed per container, defaults to '1'."
     echo -e "\t --keepOnlyFailedTests -> Keeps only videos of failed tests (you need to send a cookie). Defaults to 'false'"
  	echo -e "\t --retentionPeriod -> Number of day's a testentry should be kept in dashboard before cleanup. Defaults to 3"
+ 	echo -e "\t --dashboardEnabled -> Enable/disable the zalenium dashboard"
     echo ""
     echo -e "\t stop"
     echo ""
@@ -858,6 +861,9 @@ case ${SCRIPT_ACTION} in
                     ;;
                 --retentionPeriod)
                     RETENTION_PERIOD=${VALUE}
+                    ;;
+                --dashboardEnabled)
+                    DASHBOARD_ENABLED=${VALUE}
                     ;;
                 *)
                     echo "ERROR: unknown parameter \"$PARAM\""

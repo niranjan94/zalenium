@@ -46,6 +46,7 @@ public class Dashboard implements DashboardInterface {
     private static final String CSS_FOLDER = "/css";
     private static final String JS_FOLDER = "/js";
     private static final String ZALENIUM_RETENTION_PERIOD = "ZALENIUM_RETENTION_PERIOD";
+    private static final String ZALENIUM_DASHBOARD_ENABLED = "ZALENIUM_DASHBOARD_ENABLED";
     private static final int DEFAULT_RETENTION_PERIOD = 3;
     private static final Logger LOGGER = LoggerFactory.getLogger(Dashboard.class.getName());
     private static List<TestInformation> executedTestsInformation = new ArrayList<>();
@@ -55,11 +56,13 @@ public class Dashboard implements DashboardInterface {
     private static int executedTests = 0;
     private static int executedTestsWithVideo = 0;
     private static int retentionPeriod;
+    private static boolean isEnabled = true;
     private static AtomicBoolean shutdownHookAdded = new AtomicBoolean(false);
     
     public Dashboard() {
         retentionPeriod = env.getIntEnvVariable(ZALENIUM_RETENTION_PERIOD,
                 DEFAULT_RETENTION_PERIOD);
+        isEnabled = env.getBooleanEnvVariable(ZALENIUM_DASHBOARD_ENABLED, true);
     }
 
     public static List<TestInformation> getExecutedTestsInformation() {
@@ -92,6 +95,10 @@ public class Dashboard implements DashboardInterface {
     }
 
     public synchronized void updateDashboard(TestInformation testInformation) {
+        if (!isEnabled) {
+            return;
+        }
+
         File testCountFile = new File(getLocalVideosPath(), TEST_COUNT_FILE);
         testInformation.setRetentionDate(commonProxyUtilities.getDateAndTime(testInformation.getTimestamp(), retentionPeriod));
         
@@ -161,7 +168,11 @@ public class Dashboard implements DashboardInterface {
         }
     }
 
-    public synchronized void cleanupDashboard() throws IOException {        
+    public synchronized void cleanupDashboard() throws IOException {
+        if (!isEnabled) {
+            return;
+        }
+
         Map<Boolean, List<TestInformation>> partitioned = executedTestsInformation.stream()
                 .collect(Collectors.partitioningBy(testInformation -> testInformation.getRetentionDate().getTime() > new Date().getTime()));
         
@@ -197,6 +208,10 @@ public class Dashboard implements DashboardInterface {
     }
     
     public synchronized void resetDashboard() throws IOException {
+        if (!isEnabled) {
+            return;
+        }
+
         LOGGER.info("Reseting Dashboard");
         File testList = new File(getLocalVideosPath(), TEST_LIST_FILE);
         File testCountFile = new File(getLocalVideosPath(), TEST_COUNT_FILE);
@@ -231,6 +246,10 @@ public class Dashboard implements DashboardInterface {
 
     @VisibleForTesting
     public static void synchronizeExecutedTestsValues(File testCountFile) {
+        if (!isEnabled) {
+            return;
+        }
+
         if (testCountFile.exists()) {
             try {
                 JsonObject executedTestData = new JsonParser()
@@ -251,6 +270,10 @@ public class Dashboard implements DashboardInterface {
 
     @VisibleForTesting
     public static void loadTestInformationFromFile() {
+        if (!isEnabled) {
+            return;
+        }
+
         try {
             if (executedTestsInformation.size() == 0) {
                 File testInformationFile = new File(getLocalVideosPath(), TEST_INFORMATION_FILE);
@@ -267,6 +290,10 @@ public class Dashboard implements DashboardInterface {
 
     @VisibleForTesting
     public static void dumpTestInformationToFile() {
+        if (!isEnabled) {
+            return;
+        }
+
         try {
             if (executedTestsInformation.size() > 0) {
                 File testInformationFile = new File(getLocalVideosPath(), TEST_INFORMATION_FILE);
@@ -279,7 +306,7 @@ public class Dashboard implements DashboardInterface {
     }
 
     public static void setShutDownHook() {
-        if (!shutdownHookAdded.getAndSet(true)) {
+        if (isEnabled && !shutdownHookAdded.getAndSet(true)) {
             try {
                 Runtime.getRuntime().addShutdownHook(new Thread(Dashboard::dumpTestInformationToFile, "Dashboard dumpTestInformationToFile shutdown hook"));
             } catch (Exception e) {
